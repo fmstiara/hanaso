@@ -1,6 +1,5 @@
 package s2s_apis
 
-import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSResponse}
 

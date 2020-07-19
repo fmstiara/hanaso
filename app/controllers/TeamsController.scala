@@ -18,7 +18,7 @@ import scala.concurrent.{Future}
 class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends AbstractController(cc) {
   def post(): Action[AnyContent] =
     Action.async { request =>
-      val logger = Logger.getLogger("play")
+      implicit val logger = Logger.getLogger("play")
       logger.info("-------- [START] TeamsController.post() --------")
 
       val payload = request.body.asFormUrlEncoded.get("payload").head
@@ -40,7 +40,8 @@ class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends 
             (Json.parse(payload)  \\ "value").head.as[String]
           )
           val s2sPoster = new S2sPost(ws)
-          s2sPoster.postValue(actionValue)
+          val res = s2sPoster.postValue(actionValue)
+          res.foreach(v => logger.info(s"${v.body}"))
           Future("Hanaso").map(Ok(_))
 
         case "confirmAbleToTalk" =>
