@@ -7,7 +7,7 @@ import play.mvc.Http.{HeaderNames, MimeTypes}
 import scala.concurrent.Future
 
 trait S2sPostable {
-  val S2S_BASE_URL = "https://9a5df6441ba0.ngrok.io/"
+  val S2S_BASE_URL = "https://server1-dot-hanaso-283706.an.r.appspot.com/"
 
   def post(method: String, requestParamJson: JsValue, ws: WSClient): Future[WSResponse] = {
     val slackRequestUrl: String = s"$S2S_BASE_URL$method"
