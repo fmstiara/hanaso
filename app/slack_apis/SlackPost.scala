@@ -25,6 +25,18 @@ class SlackPost(val ws: WSClient) extends SlackPostable with SlackResponseJsonPa
     }
   }
 
+  def deleteMessage(responseUrl: String): Future[DeleteMessageResponse] = {
+    val requestParamJson = Json.obj(
+      "delete_original"-> "true"
+    )
+
+    ws.url(responseUrl).post(requestParamJson).flatMap{ response =>
+      Future.fromTry(
+        parse[DeleteMessageResponse](response.json)
+      )
+    }
+  }
+
   def statusOkPost(responseUrl: String): Future[WSResponse] = {
     statusPost(responseUrl, 200, slackApiToken, ws)
   }

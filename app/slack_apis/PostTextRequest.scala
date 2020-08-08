@@ -6,7 +6,8 @@ import play.api.libs.json.{JsValue, Json, JsonConfiguration, Writes}
 class PostTextRequest(channel: String, target: String, callType: Int, url: String, unfurlMedia: Boolean = true) {
   val CALL_MESSAGE = s"<@$target>さんは大丈夫みたいですよ :blush: 早速話しましょう :laughing:"
   val CALLED_MESSAGE = s"では、<@$target>さんとお話しましょう :laughing"
-  val FAILED_MESSAGE = s"<@$target> は今空いてないみたいです...:cry:改めて時間を約束しましょう :hugging_face:"
+  val CALL_FAILED_MESSAGE = s"<@$target> は今空いてないみたいです...:cry:改めて時間を約束しましょう :hugging_face:"
+  val CALLED_FAILED_MESSAGE = s"かしこまりました :brush: もし必要であれば、改めて<@$target>さんと時間を約束しましょう"
 
   def createRequest(message: String): JsValue =
     Json.obj(
@@ -37,23 +38,27 @@ class PostTextRequest(channel: String, target: String, callType: Int, url: Strin
       )
     )
 
+  def createFailedRequest(message: String): JsValue =
+    Json.obj(
+      "channel" -> channel,
+      "text" -> "Hanaso",
+      "blocks" -> Json.arr(
+        Json.obj(
+          "type" -> "section",
+          "text" -> Json.obj(
+            "type" -> "mrkdwn",
+            "text" -> message
+          )
+        )
+      )
+    )
+
   def get(): JsValue = {
     callType match {
       case 0 => createRequest(CALL_MESSAGE)
       case 1 => createRequest(CALLED_MESSAGE)
-      case 2 => Json.obj(
-        "channel" -> channel,
-        "text" -> "Hanaso",
-        "blocks" -> Json.arr(
-          Json.obj(
-            "type" -> "section",
-            "text" -> Json.obj(
-              "type" -> "mrkdwn",
-              "text" -> FAILED_MESSAGE
-            )
-          )
-        )
-      )
+      case 2 => createFailedRequest(CALL_FAILED_MESSAGE)
+      case 3 => createFailedRequest(CALLED_FAILED_MESSAGE)
       case _ => Json.obj(
         "channel" -> channel,
         "text" -> "",

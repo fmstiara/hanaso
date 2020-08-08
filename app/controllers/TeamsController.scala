@@ -3,15 +3,16 @@ package controllers
 import java.util.logging.Logger
 
 import javax.inject.Inject
-import play.api.libs.json.{Json}
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc.{AbstractController, Action, AnyContent, ControllerComponents}
 import s2s_apis.S2sPost
 import slack_apis.errors.InvalidParamException
 import teams_apis.TeamsPost
 import slack_apis.SlackPost
+
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.{Future}
+import scala.concurrent.Future
 
 
 
@@ -25,6 +26,7 @@ class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends 
       val responseUrl = (Json.parse(payload) \ "response_url").as[String]
 
       logger.info(payload)
+      logger.info(responseUrl)
 
       val actionType = (Json.parse(payload) \\ "block_id").head.as[String]
       val slackPoster = new SlackPost(ws)
@@ -39,8 +41,11 @@ class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends 
           val actionValue = Json.parse(
             (Json.parse(payload)  \\ "value").head.as[String]
           )
+
+          val newValue: JsValue = actionValue.as[JsObject] + ("delete_message_url" -> JsString(responseUrl))
+
           val s2sPoster = new S2sPost(ws)
-          val res = s2sPoster.postValue(actionValue)
+          val res = s2sPoster.postValue(newValue)
           res.foreach(v => logger.info(s"${v.body}"))
           Future("Hanaso").map(Ok(_))
 
@@ -63,14 +68,17 @@ class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends 
               response <- Future.sequence(
                 Seq(
                   slackPoster.postDm(fromUserId, toUserId, 0, teamsUrl.joinUrl),
-                  slackPoster.postDm(toUserId, fromUserId, 1, teamsUrl.joinUrl)
+                  slackPoster.postDm(toUserId, fromUserId, 1, teamsUrl.joinUrl),
+                  slackPoster.deleteMessage(responseUrl)
                 )
               )
             } yield {
               response
             }
 
-            // 現状、エラーメッセージを受け取れない。
+            postedMessage.foreach(res => logger.info(res.toString()))
+
+            // 現状、エラーメッセージを受け取れない。残念。。。
             postedMessage.recover{
               case e: Exception => InternalServerError(Json.obj("error" -> e.getMessage))
             }
@@ -78,19 +86,23 @@ class TeamsController @Inject()(cc: ControllerComponents, ws: WSClient) extends 
 
           } else {
             logger.info("--------- 相手がNGのとき --------")
-            val postedMessage =  slackPoster.postDm(fromUserId, toUserId, 2, "")
-
-            // 現状、エラーメッセージを受け取れない。
-            postedMessage
-              .map( response =>
-                Ok(
-                  Json.obj("text" -> response.message.text)
+            val postedMessage = for {
+              response <- Future.sequence(
+                Seq(
+                  slackPoster.postDm(fromUserId, toUserId, 2, ""),
+                  slackPoster.postDm(toUserId, fromUserId, 3, ""),
+                  slackPoster.deleteMessage(responseUrl)
                 )
               )
-              .recover{
-                case InvalidParamException(message) => BadRequest(Json.obj("error" -> message))
-                case e: Exception => InternalServerError(Json.obj("error" -> e.getMessage))
-              }
+            } yield {
+              response
+            }
+
+            // 現状、エラーメッセージを受け取れない。残念。。。
+            postedMessage.recover{
+              case e: Exception => InternalServerError(Json.obj("error" -> e.getMessage))
+            }
+            Future("Hanaso").map(Ok(_))
           }
 
         case _ =>
