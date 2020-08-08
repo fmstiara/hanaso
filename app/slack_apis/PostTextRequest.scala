@@ -1,11 +1,10 @@
 package slack_apis
 
-import play.api.libs.json.JsonNaming.SnakeCase
-import play.api.libs.json.{JsValue, Json, JsonConfiguration, Writes}
+import play.api.libs.json.{JsValue, Json}
 
-class PostTextRequest(channel: String, target: String, callType: Int, url: String, unfurlMedia: Boolean = true) {
+class PostTextRequest(channel: String, target: String, callType: Int, url: String) {
   val CALL_MESSAGE = s"<@$target>さんは大丈夫みたいですよ :blush: 早速話しましょう :laughing:"
-  val CALLED_MESSAGE = s"では、<@$target>さんとお話しましょう :laughing"
+  val CALLED_MESSAGE = s"では、<@$target>さんとお話しましょう :laughing:"
   val CALL_FAILED_MESSAGE = s"<@$target> は今空いてないみたいです...:cry:改めて時間を約束しましょう :hugging_face:"
   val CALLED_FAILED_MESSAGE = s"かしこまりました :brush: もし必要であれば、改めて<@$target>さんと時間を約束しましょう"
 
